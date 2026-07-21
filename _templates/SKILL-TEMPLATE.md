@@ -1,113 +1,172 @@
 ---
-name: <skill-identifier>
+name: <skill-identifier>                   # e.g. angular-development
 description: >
-  One-paragraph description of what this skill does and when Claude should trigger it.
-  Be specific about trigger phrases, file types, and contexts. Err on the side of being
-  "pushy" — list concrete scenarios so the skill activates when it should.
-  Example triggers: "when the user asks to create an Angular component", "when a .spec.ts
-  file is involved", "when the user mentions state management in React".
+  One-paragraph description of what this skill does and when Claude should activate it.
+  Be specific about trigger phrases, file types, and contexts.
+  Example: "Use when building Angular applications. Triggers on: creating components,
+  services, pipes, directives; writing RxJS streams; configuring NgRx state; writing
+  tests for Angular code."
 version: 1.0.0
-technology: <angular | reactjs | nextjs | dotnet | java | python | design | other>
-author: <name or team>
-reviewed_by: <reviewer name — filled after approval>
+technology: <angular | reactjs | nextjs | native-web | dotnet | python | design | other>
+author: <name>
 last_updated: <YYYY-MM-DD>
-compatibility: <any required tools, CLIs, or dependencies — e.g. "Angular CLI >= 17, Node >= 20">
 ---
 
 # <Skill Name>
 
-## Overview
-
-Brief description of what this skill helps Claude do and why it exists. Two to four sentences.
-Explain the problem it solves and the value it delivers to the developer.
-
-## When to Use
-
-Clearly describe the scenarios, prompts, and contexts where this skill should activate.
-Include example trigger phrases so Claude knows when to apply it.
-
-- User asks to generate, scaffold, or refactor `<X>` files
-- User mentions `<keyword>` or `<framework concept>`
-- Files matching `<glob pattern>` are open or referenced
-- Example phrases: "create a service", "add a unit test", "scaffold a module"
-
-## When NOT to Use
-
-Scenarios where this skill should NOT trigger, to prevent false activations.
-
-- This skill does not apply to `<related but different technology>`
-- Do not use when the user is asking about `<out-of-scope concern>`
-- Do not combine with `<conflicting skill>` at the same time
-
-## Instructions
-
-> Core instructions Claude should follow when this skill is active.
-> Write in imperative form. Be precise, opinionated, and practical.
-> This section is the heart of the skill.
-
-### Code Style & Conventions
-
-- Describe naming conventions, file structure, import ordering, etc.
-- List any linting rules or formatter settings that must be respected
-
-### Architecture & Patterns
-
-- Describe the preferred patterns for this technology (e.g. smart/dumb components, repository pattern)
-- Explain any required abstractions or layering
-
-### Dos and Don'ts
-
-**Do:**
-- Always do `<X>`
-- Prefer `<approach A>` over `<approach B>` because `<reason>`
-
-**Don't:**
-- Never do `<Y>` — it causes `<problem>`
-- Avoid `<anti-pattern>` — use `<alternative>` instead
-
-### Error Handling & Edge Cases
-
-- Describe how errors should be handled in this context
-- Note any known gotchas or platform-specific quirks
-
-## Examples
-
-Provide at least two concrete input/output examples showing the skill in action.
+> One-sentence summary of what this skill enforces and for whom.
+> Example: "Opinionated conventions for building production Angular applications with
+> TypeScript 5, RxJS 7, and NgRx."
 
 ---
 
-**Example 1: `<Short title>`**
+## 1. When to Use
 
-_Input (what the user asks):_
+Apply this skill when:
+
+- User asks to create, scaffold, or refactor `<X>` files or features
+- User mentions `<keyword>`, `<framework concept>`, or `<file pattern>`
+- The project contains `<config file>` or `<dependency>`
+- Example trigger phrases: `"create a service"`, `"add a unit test"`, `"scaffold a module"`
+
+**Do NOT use when:**
+
+- The project uses `<related but different technology>` instead
+- The user is asking about `<out-of-scope concern>`
+- A more specific skill (e.g. `<skill-name>`) is already active
+
+---
+
+## 2. Project Structure
+
 ```
-<paste a realistic user prompt here>
+<project-root>/
+├── <config-file>              ← <purpose>
+├── <config-file>              ← <purpose>
+└── src/
+    ├── <folder>/              ← <purpose>
+    │   ├── <subfolder>/       ← <purpose>
+    │   └── <subfolder>/       ← <purpose>
+    └── <folder>/              ← <purpose>
 ```
 
-_Expected output (what Claude should produce):_
+Rules:
+- `<folder naming rule>`
+- `<file placement rule>`
+- `<module / barrel file rule>`
+
+---
+
+## 3. Toolchain & Configuration
+
+> List the tools, lock files, and key config snippets that must be present.
+> Keep config examples minimal — just the fields that matter for this skill.
+
+**Required tools:** `<tool-1>`, `<tool-2>`, `<linter>`, `<formatter>`
+
+```<config-format>
+# <config-file-name>
+# Key fields only — omit boilerplate
+
+<key>: <value>    # <reason>
+<key>: <value>    # <reason>
+```
+
+---
+
+## 4. <Core Topic A — e.g. Components, Controllers, Models>
+
+> Replace this section header with the first major technical topic for the stack.
+> Add as many core topic sections as needed (typically 4–8).
+> Each section: rules as a bullet list + one short representative code snippet.
+> Full patterns and complete examples belong in the references/ files.
+
+Rules:
+- `<rule>`
+- `<rule>`
+- `<rule>`
+
 ```<language>
-// Paste the ideal code or artifact Claude should generate
+// Short representative snippet — 10–25 lines maximum.
 ```
 
 ---
 
-**Example 2: `<Short title>`**
+## 5. <Core Topic B — e.g. Services, Data Layer, State>
 
-_Input:_
-```
-<paste a realistic user prompt here>
-```
+Rules:
+- `<rule>`
+- `<rule>`
 
-_Expected output:_
 ```<language>
-// Paste the ideal code or artifact Claude should generate
+// Short representative snippet
 ```
 
 ---
 
-## References
+## 6. <Core Topic C — e.g. Error Handling, Validation>
 
-List any external docs, internal wiki pages, or files in the `references/` subfolder that
-support this skill.
+Rules:
+- `<rule>`
+- `<rule>`
 
-- [Official docs](<URL>)
-- `references/<filename>` — description of what this file contains
+```<language>
+// Short representative snippet
+```
+
+---
+
+## 7. <Core Topic D — e.g. Testing>
+
+> If this skill has a dedicated references/testing.md, keep this section to
+> 3–5 bullet rules and point there for the full strategy.
+
+Rules:
+- `<rule>`
+- `<rule>`
+
+---
+
+## 8. <Core Topic E — e.g. Performance>
+
+Rules:
+- `<rule>`
+- `<rule>`
+
+---
+
+## 9. Naming Conventions
+
+| Construct | Rule | Example |
+|---|---|---|
+| `<construct>` | `<rule>` | `<example>` |
+| `<construct>` | `<rule>` | `<example>` |
+| `<construct>` | `<rule>` | `<example>` |
+| `<construct>` | `<rule>` | `<example>` |
+| `<construct>` | `<rule>` | `<example>` |
+
+---
+
+## 10. Code Quality
+
+- **Linter:** `<tool>` — run with `<command>`. Zero warnings policy.
+- **Formatter:** `<tool>` — run with `<command>`. Enforced in CI.
+- **Type checking:** `<tool>` — run with `<command>`. Strict mode on.
+- Never disable rules inline without a comment explaining why.
+- `<any other stack-specific quality rule>`
+
+---
+
+## Customizing
+
+> This section tells Claude which reference file to read for each topic.
+> Claude reads SKILL.md first; it opens a reference file only when it needs
+> deeper detail on that specific topic. Update the table as files are added.
+
+| Topic | File | When to read |
+|---|---|---|
+| `<topic>` | `references/<filename>.md` | When the user asks about `<trigger>` |
+| `<topic>` | `references/<filename>.md` | When the user asks about `<trigger>` |
+| `<topic>` | `references/<filename>.md` | When the user asks about `<trigger>` |
+| `<topic>` | `references/<filename>.md` | When the user asks about `<trigger>` |
+| Full examples | `references/examples.md` | When producing a complete feature or needing a production-ready pattern |
