@@ -7,12 +7,6 @@ description: >
   UI/UX design system creation skill covering design tokens, component APIs,
   typography, colour, spacing, accessibility (WCAG 2.1 AA), Figma handoff
   conventions, motion, dark mode, and component documentation.
-references:
-  - references/tokens.md
-  - references/components.md
-  - references/accessibility.md
-  - references/figma.md
-  - references/examples.md
 ---
 
 # Design System Development Skill
@@ -208,8 +202,6 @@ Global tokens  →  Semantic tokens  →  Component tokens
 }
 ```
 
-For the complete token set see `references/tokens.md`.
-
 ---
 
 ## 3. Component API Patterns
@@ -365,7 +357,7 @@ Every component has a documented API with: variants, sizes, states, slots, and e
 
 ## 7. Accessibility (WCAG 2.1 AA)
 
-All components must meet WCAG 2.1 Level AA. See `references/accessibility.md` for patterns.
+All components must meet WCAG 2.1 Level AA. Requirements are listed below.
 
 **Non-negotiable requirements:**
 - Keyboard navigable — all interactive elements reachable with Tab and activated with Enter/Space
@@ -405,7 +397,10 @@ Badge/Danger
 - Hidden layers start with `_` (`_Mask`, `_Shadow layer`)
 - Never leave Figma default names (`Frame 42`, `Rectangle 1`)
 
-For full Figma conventions, component variants, variables, and code connect see `references/figma.md`.
+### Variables & Code Connect
+- Map every semantic token to a Figma Variable in the matching collection (Color, Spacing, Typography)
+- Use Code Connect to bind Figma components to their code counterparts so Inspect shows real props
+- Export tokens as JSON via the Tokens Studio plugin or Figma Variables REST API for CI sync
 
 ---
 
