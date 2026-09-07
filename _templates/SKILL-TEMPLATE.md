@@ -170,3 +170,24 @@ Rules:
 | `<topic>` | `references/<filename>.md` | When the user asks about `<trigger>` |
 | `<topic>` | `references/<filename>.md` | When the user asks about `<trigger>` |
 | Full examples | `references/examples.md` | When producing a complete feature or needing a production-ready pattern |
+
+### Project Overrides
+
+> This is a different mechanism from the table above: the table tells Claude
+> which of *this skill's own* files to open. This section instead gives a
+> consuming project a place to record its own deviations from the skill's
+> defaults, without forking or editing the skill itself.
+>
+> When a project adopts this skill, its team can paste a block like the one
+> below into their own project docs (or a project-local `references/project-overrides.md`
+> they create themselves — this skill does not ship one) to declare where they
+> intentionally diverge. Claude should treat overrides recorded this way as
+> taking precedence over the corresponding rule in this SKILL.md.
+
+```markdown
+## Project Overrides — [Project Name]
+
+- `<rule this project changes>`: `<the project's actual choice>` — not the skill's default
+- `<rule this project changes>`: `<the project's actual choice>` — not the skill's default
+- `<rule this project changes>`: `<the project's actual choice>` — not the skill's default
+```
