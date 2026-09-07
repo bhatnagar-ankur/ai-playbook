@@ -136,6 +136,8 @@ class ApiResponseDict(TypedDict):
 ## NamedTuple
 
 ```python
+from __future__ import annotations
+
 from typing import NamedTuple
 
 
@@ -162,7 +164,7 @@ class Coordinate(NamedTuple):
 ```python
 from __future__ import annotations
 
-from typing import Protocol, runtime_checkable
+from typing import Protocol, TypeVar, runtime_checkable
 
 
 # Protocol defines an interface without inheritance
@@ -200,9 +202,20 @@ serialise(OrderReport())  # Type-safe
 
 
 # Protocol with state
+# Python 3.12+ syntax (PEP 695 generic class) — requires Python 3.12+, not 3.11
 class Repository[T](Protocol):
     def get_by_id(self, id: str) -> T | None: ...
     def save(self, entity: T) -> None: ...
+    def delete(self, id: str) -> None: ...
+
+
+# Python 3.11-compatible equivalent using TypeVar
+RepoT = TypeVar("RepoT")
+
+
+class RepositoryLegacy(Protocol[RepoT]):
+    def get_by_id(self, id: str) -> RepoT | None: ...
+    def save(self, entity: RepoT) -> None: ...
     def delete(self, id: str) -> None: ...
 ```
 
@@ -283,6 +296,8 @@ class Stack[T]:
 ## Literal and Final
 
 ```python
+from __future__ import annotations
+
 from typing import Final, Literal
 
 

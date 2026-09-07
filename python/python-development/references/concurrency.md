@@ -59,6 +59,8 @@ if __name__ == "__main__":
 ## Concurrent Tasks
 
 ```python
+from __future__ import annotations
+
 import asyncio
 from collections.abc import Sequence
 
@@ -122,6 +124,8 @@ async def process_as_completed(
 ## Async Context Managers and Iterators
 
 ```python
+from __future__ import annotations
+
 from contextlib import asynccontextmanager
 
 
@@ -186,6 +190,8 @@ async def process_stream() -> None:
 ## asyncio with httpx
 
 ```python
+from __future__ import annotations
+
 import asyncio
 import httpx
 from collections.abc import Sequence
@@ -244,19 +250,29 @@ class OrderApiClient:
 ## ThreadPoolExecutor
 
 ```python
+from __future__ import annotations
+
 import asyncio
-from concurrent.futures import ThreadPoolExecutor
+from collections.abc import Callable
 from functools import partial
+from typing import Any, TypeVar
+
+T = TypeVar("T")
 
 
-# Run a blocking (sync) function in a thread pool without blocking the event loop
-async def run_blocking(func, *args, **kwargs):
+# Run a blocking (sync) function without blocking the event loop.
+# Pass executor=None to use the loop's default executor (a shared, lazily created
+# ThreadPoolExecutor) instead of creating — and discarding — a new pool on every call.
+async def run_blocking(
+    func: Callable[..., T],
+    *args: Any,
+    **kwargs: Any,
+) -> T:
     loop = asyncio.get_running_loop()
-    with ThreadPoolExecutor() as pool:
-        return await loop.run_in_executor(
-            pool,
-            partial(func, *args, **kwargs),
-        )
+    return await loop.run_in_executor(
+        None,
+        partial(func, *args, **kwargs),
+    )
 
 
 # Example: CPU-bound or blocking I/O in threads
@@ -297,6 +313,8 @@ def process_orders_threaded(order_ids: list[str], max_workers: int = 4) -> list[
 ## ProcessPoolExecutor
 
 ```python
+from __future__ import annotations
+
 from concurrent.futures import ProcessPoolExecutor
 import os
 
@@ -327,6 +345,8 @@ def parallel_cpu_work(datasets: list[list[float]]) -> list[float]:
 ## Queues and Pipelines
 
 ```python
+from __future__ import annotations
+
 import asyncio
 
 
@@ -381,6 +401,8 @@ async def run_pipeline(order_ids: list[str]) -> list[str]:
 ## Timeouts and Cancellation
 
 ```python
+from __future__ import annotations
+
 import asyncio
 
 

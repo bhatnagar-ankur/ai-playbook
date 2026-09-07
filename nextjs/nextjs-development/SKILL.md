@@ -3,12 +3,13 @@ name: nextjs-development
 version: 1.0.0
 author: Ankur Bhatnagar
 description: >
-  Enforces Next.js 14+ App Router best practices covering Server and Client Components,
+  Enforces Next.js 15+ App Router best practices covering Server and Client Components,
   mixed rendering strategies (SSR / SSG+ISR / CSR), Server Actions, authentication
   (Auth.js, external providers, custom JWT), API Routes, metadata/SEO, performance,
   and testing. Inherits the React type system, HTTP layer, and state management patterns.
 technology: nextjs
-compatibility: Next.js >= 14, React >= 19, TypeScript >= 5.0
+compatibility: Next.js >= 15, React >= 19, TypeScript >= 5.0
+last_updated: 2026-09-07
 tags: [nextjs, react, app-router, server-components, server-actions, authjs, tanstack-query, typescript, testing-library, playwright]
 triggers:
   - Next.js App Router file (page.tsx, layout.tsx, loading.tsx, error.tsx, not-found.tsx)
@@ -28,13 +29,21 @@ triggers:
 
 # Next.js Development Skill
 
-This skill guides Claude to produce idiomatic, type-safe Next.js 14+ code using the App Router.
+This skill guides Claude to produce idiomatic, type-safe Next.js 15+ code using the App Router.
 It covers the full spectrum: Server Components as the default, Client Components where needed,
 mixed per-route rendering strategies, Server Actions for mutations, and three authentication
 approaches. Follow every rule in this document unless the **Customizing** section overrides it.
 
+The default Server Actions form pattern in this skill (`useActionState`, `useOptimistic`) requires
+React 19, which ships by default from Next.js 15 onward. Next.js 14.x projects do not get React 19
+by default — either upgrade to Next.js 15+, or fall back to `useState` + `startTransition` for
+pending/result state instead of `useActionState`/`useOptimistic`.
+
 For shared type system, HTTP layer, and state management patterns — see the React skill at
 `reactjs/react-development/SKILL.md`. This skill extends those patterns for the Next.js context.
+
+For complete, annotated end-to-end examples that combine multiple sections of this skill (SSR
+pages with streaming, Server Action forms, ISR catalogues, Auth.js login), see `references/examples.md`.
 
 ---
 
@@ -48,11 +57,20 @@ Apply when:
 - Configuring `next/image`, `next/font`, metadata, or SEO tags
 - Writing tests for Next.js pages, Server Actions, or Route Handlers
 
+**Do NOT use when:**
+- The project uses the Pages Router (`pages/` directory, no `app/` directory present) — App
+  Router conventions here (Server Components, Server Actions, route.ts handlers) do not apply
+- The project is a plain React SPA with no Next.js framework — defer to `react-development`
+- The project is pinned to Next.js 14.x and cannot upgrade — treat the `useActionState`/
+  `useOptimistic` examples in this skill as needing the `useState` + `startTransition` fallback
+  (see the compatibility note above)
+
 ---
 
 ## 2. Project Structure (App Router)
 
 ```
+middleware.ts                     # Edge middleware for auth route protection (true project root — sibling of src/)
 src/
 ├── app/                          # App Router root
 │   ├── layout.tsx                # Root layout — fonts, providers, global shell
@@ -90,7 +108,7 @@ src/
 │   ├── enums/
 │   ├── constants/
 │   └── mappers/
-└── middleware.ts                 # Edge middleware for auth route protection
+└── ...
 ```
 
 ---
@@ -183,7 +201,7 @@ Full examples in `references/rendering.md`. Choose per page — mixing is correc
 
 | Strategy | How to trigger | When to use |
 |---|---|---|
-| **SSR** (dynamic) | `fetch` with no `cache` option, or `export const dynamic = 'force-dynamic'` | User-specific data, real-time inventory, session-dependent content |
+| **SSR** (dynamic) | `fetch(url, { cache: 'no-store' })`, a dynamic function (`cookies()`, `headers()`), or `export const dynamic = 'force-dynamic'` | User-specific data, real-time inventory, session-dependent content |
 | **SSG** | `generateStaticParams()` + no dynamic data | Marketing pages, blog posts, product catalogue with infrequent updates |
 | **ISR** | `fetch(url, { next: { revalidate: N } })` or `revalidateTag()` | Content that changes occasionally (e.g. every hour) |
 | **CSR** | `'use client'` + TanStack Query (no server fetch) | Highly interactive dashboards, user-specific widgets |
@@ -414,8 +432,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
 **Route Handler naming:**
 - Export named functions matching HTTP methods: `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `HEAD`, `OPTIONS`
-- Never use default export in `route.ts`
-- Always type the return as `NextResponse`
+- Never use default export in `route.ts` — the App Router dispatches requests by looking for a
+  named export matching the HTTP method; a default export is never invoked and the route silently 404s
+- Always type the return as `NextResponse` — an explicit return type catches missing-return code
+  paths (e.g. a forgotten `return` in an `if` branch) at compile time instead of at request time
 
 ---
 
@@ -428,7 +448,7 @@ import { type Metadata } from 'next';
 import { ordersRepository } from '../../../../lib/db/orders.repository';
 
 interface OrderDetailPageParams {
-  params: { orderId: string };
+  params: Promise<{ orderId: string }>;
 }
 
 /**
@@ -438,11 +458,12 @@ interface OrderDetailPageParams {
 export async function generateMetadata(
   { params }: OrderDetailPageParams,
 ): Promise<Metadata> {
-  const order = await ordersRepository.findById(params.orderId);
+  const { orderId } = await params;
+  const order = await ordersRepository.findById(orderId);
 
   return {
-    title:       `Order ${params.orderId} — ${order?.status ?? 'Details'}`,
-    description: `View details for order ${params.orderId}`,
+    title:       `Order ${orderId} — ${order?.status ?? 'Details'}`,
+    description: `View details for order ${orderId}`,
     robots:      { index: false, follow: false }, // Don't index order details
   };
 }
@@ -450,7 +471,8 @@ export async function generateMetadata(
 export default async function OrderDetailPage(
   { params }: OrderDetailPageParams,
 ): Promise<React.ReactElement> {
-  const order = await ordersRepository.findById(params.orderId);
+  const { orderId } = await params;
+  const order = await ordersRepository.findById(orderId);
   if (!order) notFound();
 
   return <OrderDetailView order={order} />;

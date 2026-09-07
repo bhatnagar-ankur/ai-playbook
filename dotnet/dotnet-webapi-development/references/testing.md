@@ -61,13 +61,17 @@ For the overview see the **Testing** section in `SKILL.md`.
 
 public sealed class OrderServiceTests
 {
+    // SaveChangesAsync lives on IUnitOfWork, not IOrderRepository — the repository mock
+    // only handles data access (Get/Add/Update/Remove); persistence is mocked separately.
     private readonly Mock<IOrderRepository> _repoMock   = new(MockBehavior.Strict);
+    private readonly Mock<IUnitOfWork> _uowMock         = new();
     private readonly Mock<ILogger<OrderService>> _logMock = new();
     private readonly OrderService _sut;
 
     public OrderServiceTests()
     {
-        _sut = new OrderService(_repoMock.Object, _logMock.Object);
+        _uowMock.Setup(u => u.Orders).Returns(_repoMock.Object);
+        _sut = new OrderService(_uowMock.Object, _logMock.Object);
     }
 
     [Fact]
@@ -109,7 +113,7 @@ public sealed class OrderServiceTests
         var request = new CreateOrderRequest { CustomerId = "cust-1", TotalAmount = 50m };
         _repoMock.Setup(r => r.AddAsync(It.IsAny<Order>(), It.IsAny<CancellationToken>()))
                  .Returns(Task.CompletedTask);
-        _repoMock.Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+        _uowMock.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()))
                  .ReturnsAsync(1);
 
         // Act

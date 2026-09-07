@@ -305,6 +305,13 @@ Standard signatures:
 - `fromApiList(rawList)` — array → array
 - `toApiDto(model)` — domain model → API-ready DTO
 
+**Class vs. interface as the mapper's return type:** target a model **class** (e.g.
+`UserMapper.fromApi` returning `UserModel`) when the entity needs behaviour — computed
+properties or shared utility methods beyond the raw data, per the Model Classes section above.
+Target the plain **interface** directly (e.g. `OrderMapper.fromApi` returning `IOrder`) when the
+shape is a pure data-transfer object with no behaviour. Do not create a class just to mirror an
+interface with no added methods.
+
 ```typescript
 // models/mappers/user.mapper.ts
 

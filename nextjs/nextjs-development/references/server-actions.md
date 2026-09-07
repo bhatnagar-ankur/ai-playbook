@@ -36,8 +36,36 @@ features/
 - Co-locate actions with the route that primarily uses them (`app/.../actions.ts`)
 - Move an action to `features/<feature>/actions/` when it's called from multiple routes
 - Always mark the file or each function with `'use server'`
-- Every Server Action must validate input with Zod before touching the database
-- Every Server Action must check authentication before any data access
+- Every Server Action must validate input with Zod before touching the database — a Server
+  Action compiles down to a public, network-callable POST endpoint (see the security note below),
+  so it receives arbitrary attacker-controlled input exactly like a REST API route, regardless of
+  what the calling form's client-side validation allows through
+- Every Server Action must check authentication before any data access — the UI that renders the
+  `<form action={...}>` or triggers the action is not a security boundary; anyone who discovers
+  the action's endpoint can call it directly, bypassing whatever page or component guards it
+
+---
+
+## Security: Server Actions Are POST Endpoints
+
+A Server Action is not "just a function call" — under the hood, the client calls it via a `POST`
+request to an internal Next.js endpoint (identified by an action ID), and it is reachable by
+anything that can reach your server, not only by the form or button that appears to invoke it.
+Treat every Server Action with the same suspicion as a public API route.
+
+- Next.js includes built-in origin checking for Server Actions on same-origin requests (comparing
+  the `Origin` header against the `Host` header) as of recent versions — this blocks naive
+  cross-site form submissions by default.
+- If you deploy behind a reverse proxy, a CDN, or serve the app from multiple custom domains,
+  explicitly configure `experimental.serverActions.allowedOrigins` (or `serverActions.allowedOrigins`
+  on newer versions) in `next.config.js`/`next.config.ts` — otherwise legitimate requests can be
+  rejected, or you may be tempted to disable the check entirely.
+- **Never rely on cookie presence alone as CSRF protection** for a state-changing Server Action.
+  A cookie being sent does not prove the request originated from your own UI. For sensitive
+  mutations (changing role/permissions, payments, account deletion, etc.), pair the built-in
+  origin check with explicit re-validation of authorization inside the action itself (e.g.
+  `requireAuth()` / `requireRole()` below, plus re-checking that the authenticated user actually
+  owns or may act on the specific resource ID passed in).
 
 ---
 

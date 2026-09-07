@@ -58,7 +58,8 @@ async function loadDashboard() {
 **Rules:**
 - Always use the `.js` file extension in import paths — browsers require it
 - Never use default exports — named exports make search and refactoring predictable
-- Never use `import *` — import only what is needed
+- Never use `import *` — it defeats tree-shaking and makes it unclear which exports are
+  actually used; import only what is needed
 - Module paths are always relative to the current file: `'./utils/http.utils.js'`
 
 ---

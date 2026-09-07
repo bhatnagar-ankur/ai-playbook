@@ -8,8 +8,9 @@ description: >
   standalone component, signals, NgRx, BehaviorSubject, Reactive Forms, Signal Forms,
   lazy loading, OnPush, @if/@for/@switch/@defer, input/output signals, inject(),
   interface, enum, mapper, WCAG, accessibility, NgOptimizedImage, httpResource,
-  zoneless, or any Angular CLI command. Apply to any .ts, .html, or .spec.ts file
-  that is Angular-specific. Apply when migrating NgModule code to standalone.
+  zoneless, or any Angular CLI command. Apply to any file importing from `@angular/core`
+  or containing `@Component`, `@Injectable`, `@Directive`, or `@Pipe`. Apply when
+  migrating NgModule code to standalone.
 version: 1.0.0
 technology: angular
 author: Ankur Bhatnagar
@@ -35,6 +36,9 @@ Any Angular artifact (component, service, directive, pipe, guard, interceptor, r
 routes file, form), any Angular template, migration from NgModule to standalone, or any
 `.component.ts`, `.service.ts`, `.directive.ts`, `.pipe.ts`, `.guard.ts`, `.spec.ts`,
 or matching `.html` file.
+
+Example trigger phrases: `"create a component"`, `"add a route guard"`,
+`"scaffold a service"`, `"write a form validator"`, `"migrate this module to standalone"`.
 
 ## When NOT to Use
 
@@ -102,7 +106,8 @@ src/app/
 
 ### Key rules
 
-- All interfaces must be prefixed with `I` — no exceptions.
+- All interfaces must be prefixed with `I` — no exceptions. This makes contracts
+  distinguishable from concrete classes/models at a glance, without checking the definition.
 - Use **string enums** by default (survive serialisation, readable in logs).
 - Every property must have an explicit type — never use `any`; use `unknown` and narrow.
 - Use `readonly` on properties that must not be mutated after creation.
@@ -156,6 +161,8 @@ export class UserCardComponent {
 **Rules:**
 - `ChangeDetectionStrategy.OnPush` on every component — no exceptions.
 - `inject()` for DI in new code; constructor injection only when maintaining existing code.
+  `inject()` works in functional guards, interceptors, and route resolvers where there is
+  no constructor, needs less boilerplate, and is easier to call in isolation in tests.
 - Every class must have a JSDoc summary directly above its decorator.
 - Keep components under 200 lines; extract logic into services.
 
@@ -414,6 +421,8 @@ export const APP_ROUTES: Routes = [
 
 - `loadComponent` for single-component routes; `loadChildren` for feature route files.
 - Functional guards only (`CanActivateFn`, `CanMatchFn`) — no class-based guards for new code.
+  Functional guards are tree-shakeable, require no DI boilerplate (no `@Injectable`
+  class just to hold one check), and compose naturally with `inject()`.
 
 ```typescript
 /** Redirects unauthenticated users to /login, preserving the intended URL. */
@@ -455,7 +464,7 @@ Component / Facade
 
 ## 11. Accessibility
 
-WCAG AA compliance is mandatory on all user-facing output.
+WCAG 2.1 AA compliance is mandatory on all user-facing output.
 
 **Semantic HTML first — always prefer native elements over ARIA:**
 - Use `<button>` (not `<div role="button">`) for clickable actions.
@@ -582,7 +591,8 @@ if (typeof IntersectionObserver !== 'undefined') {
 - Always handle loading and error states; never leave the UI in an ambiguous state.
 - Components: max 200 lines. Extract into services or composable functions beyond that.
 - UI libraries: do not mix libraries within the same feature
-  (e.g. no PrimeNG table inside an Angular Material dialog).
+  (e.g. no PrimeNG table inside an Angular Material dialog) — mixing libraries bloats
+  bundle size and produces inconsistent theming and accessibility behavior across the feature.
 
 ---
 
@@ -611,9 +621,21 @@ if (typeof IntersectionObserver !== 'undefined') {
 
 ---
 
+## Customizing
+
+| Topic | File | When to read |
+|---|---|---|
+| Type system — interfaces, models, enums, mappers | `references/type-system.md` | When creating or reviewing interfaces, enums, constants, or API-to-domain mappers |
+| HTTP layer | `references/http-layer.md` | When adding an API service, interceptor, or any code that calls `BaseHttpService` |
+| State management | `references/state-management.md` | When choosing or implementing a state tier (Signals, RxJS, or NgRx) |
+| Testing | `references/testing.md` | When writing or reviewing `.spec.ts` files, mocks, or coverage for services/components |
+| Full examples | `references/examples.md` | When producing a complete feature or needing a production-ready end-to-end pattern |
+
 ## Customizing This Skill for Your Project
 
-Add project-specific overrides in `references/project-overrides.md`. Document:
+Create `references/project-overrides.md` in your project when you need to record
+project-specific deviations from this skill (this file does not ship with the skill —
+you create it the first time you need it). Document:
 
 | What | Example overrides |
 |---|---|

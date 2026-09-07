@@ -2,6 +2,16 @@
 name: native-web-development
 author: Ankur Bhatnagar
 version: 1.0.0
+last_updated: 2026-09-07
+description: >
+  Enforces vanilla HTML, CSS, and JavaScript (ES2020+) conventions for framework-free web
+  projects — no React, Angular, Vue, or Next.js. Covers semantic HTML, BEM CSS architecture,
+  CSS custom properties, Web Components (Custom Elements v1 + Shadow DOM), native module-based
+  state management, and the Fetch API. Triggers on: building or reviewing plain HTML/CSS/JS
+  projects, creating a custom element or Web Component, requests for "vanilla JS" or "no
+  framework" solutions, and Vite projects with no UI framework dependency. Defer to
+  `react-development`, `angular-development`, or `nextjs-development` when the project's
+  package.json depends on `react`, `@angular/core`, or `next`.
 technology: native-web
 compatibility: ES2020+ | Evergreen browsers | Vite 5+
 ---
@@ -13,6 +23,26 @@ Covers both **pure-browser** (no build step) and **Vite-based** projects, BEM CS
 CSS custom properties, Web Components, and the Fetch API.
 
 No framework. No TypeScript. No external runtime dependencies unless explicitly added.
+
+For complete, end-to-end worked examples (Vite bootstrap, pure-browser app, design token
+setup, full-feature Web Component page) see `references/examples.md`.
+
+---
+
+## When to Use
+
+Apply this skill when:
+- Building or reviewing a project written in plain HTML, CSS, and JavaScript — no UI framework
+- The user asks to add a custom element, a Web Component, or otherwise wants "vanilla JS"
+- The project's `package.json` has no `react`, `@angular/core`, `vue`, or `next` dependency
+- Example trigger phrases: `"add a custom element"`, `"build this without a framework"`,
+  `"vanilla JS component"`, `"plain HTML and CSS, no framework"`, `"use Web Components for this"`
+
+**Do NOT use when:**
+- The project's `package.json` depends on `react` or `next` — use `react-development` or
+  `nextjs-development` instead
+- The project's `package.json` depends on `@angular/core` — use `angular-development` instead
+- The project uses Vue, Svelte, or another UI framework with its own dedicated skill
 
 ---
 
@@ -30,7 +60,8 @@ No framework. No TypeScript. No external runtime dependencies unless explicitly 
 11. [SCSS (Vite)](#scss-vite)
 12. [Naming Conventions](#naming-conventions)
 13. [Code Quality Rules](#code-quality-rules)
-14. [Quick Reference](#quick-reference)
+14. [Testing](#testing)
+15. [Quick Reference](#quick-reference)
 
 ---
 
@@ -293,7 +324,8 @@ For full CSS patterns (animations, media queries, container queries, SCSS, CSS M
 - `const` by default; `let` when reassignment is necessary; never `var`
 - `async`/`await` for all asynchronous code — no raw `.then()` chains
 - JSDoc for all exported function signatures and non-obvious types
-- Named function declarations for top-level functions; arrow functions for callbacks
+- Named function declarations for top-level functions; arrow functions for callbacks — named
+  declarations produce readable stack traces and are hoisted, so call order in a file doesn't matter
 
 ```javascript
 // scripts/services/orders.service.js
@@ -351,6 +383,9 @@ encapsulated UI is needed.
 - Communicate upward via `CustomEvent` — never call parent methods directly
 - Clean up in `disconnectedCallback`: remove event listeners, cancel timers, abort fetches
 - Use private class fields (`#field`) for internal state
+- For interactive components, set `delegatesFocus: true` on `attachShadow()` and, for
+  form-associated elements, use `static formAssociated = true` with `attachInternals()` —
+  see `references/web-components.md` for the accessibility and forms subsection
 
 ```javascript
 // scripts/components/status-badge.component.js
@@ -772,19 +807,42 @@ $transition-fast: 150ms ease;
 - Add `aria-label` or visible label text to every interactive element
 - Use template literals for HTML strings — never string concatenation
 - Use `structuredClone()` to return copies of mutable state
-- Remove all `console.log` calls before committing
+- Remove all `console.log` calls before committing — they leak debug/internal state to the
+  production console and add unnecessary noise and a minor performance cost
 
 **Never:**
 - Use `var`, `eval()`, `document.write()`, or `innerHTML` with unsanitised user input
 - Rely on `window.*` global variables for cross-module communication
 - Animate using `left`/`top`/`width` — use `transform` and `opacity`
-- Access `.style` directly for layout-affecting properties — toggle CSS classes instead
+- Access `.style` directly for layout-affecting properties on markup that already exists in the
+  DOM — toggle CSS classes instead. **Exception:** a one-off, purely-JS-created container element
+  with no corresponding CSS class (e.g. a dynamically injected toast/notification container),
+  where the values being set are inherently dynamic or computed at runtime, may use
+  `Object.assign(el.style, {...})` directly — see the toast-container pattern in
+  `references/web-components.md` and `references/examples.md`
 - Extend built-in HTML elements via `customElements.define('my-button', ..., { extends: 'button' })` — Safari does not support this
 - Put `<script>` tags in the `<body>` — all scripts go at the bottom as `type="module"`
 
 ---
 
-## 14. Quick Reference
+## 14. Testing
+
+Full patterns in `references/testing.md`.
+
+**Stack:**
+- **Web Test Runner** (preferred — runs in real browsers) or **Vitest with `happy-dom`/`jsdom`** for unit tests
+- Test Shadow DOM content via `element.shadowRoot.querySelector(...)` — `document.querySelector` cannot cross the shadow boundary
+- **axe-core** for automated accessibility checks in unit tests (it traverses open shadow roots)
+- **Playwright** for end-to-end tests — its locators pierce shadow DOM automatically
+
+**Rules:**
+- Every custom element ships with at least one test asserting its rendered Shadow DOM output and any `CustomEvent`s it dispatches
+- Test behaviour through the public contract (attributes, properties, events) — never reach into `#private` fields
+- Run an axe-core scan on every page-level template and reusable Web Component before merging
+
+---
+
+## 15. Quick Reference
 
 | Need | Approach |
 |---|---|
@@ -802,3 +860,20 @@ $transition-fast: 150ms ease;
 | HTML fragments | `<template>` element + `content.cloneNode(true)` |
 | Modals | Native `<dialog>` + `.showModal()` |
 | Code splitting | Dynamic `import('./module.js')` (Vite) |
+
+---
+
+## Customizing
+
+> This section tells Claude which reference file to read for each topic. Claude reads
+> SKILL.md first; it opens a reference file only when it needs deeper detail on that
+> specific topic.
+
+| Topic | File | When to read |
+|---|---|---|
+| HTML patterns (forms, accessibility, `<template>`, `<dialog>`) | `references/html.md` | When writing or reviewing semantic markup, forms, or focus/keyboard patterns |
+| CSS patterns (animations, media/container queries, SCSS, CSS Modules) | `references/css.md` | When writing or reviewing stylesheets beyond the base BEM/tokens examples |
+| JavaScript patterns (DOM, events, delegation, custom events, error handling) | `references/javascript.md` | When writing or reviewing module, DOM, or async JS beyond the quick examples |
+| Web Components (Shadow DOM, slots, lifecycle, forms, accessibility) | `references/web-components.md` | When creating or reviewing a custom element, or wiring up `delegatesFocus`/`ElementInternals` |
+| Testing | `references/testing.md` | When writing or reviewing unit, Shadow DOM, accessibility, or end-to-end tests |
+| Full examples | `references/examples.md` | When producing a complete feature or needing a production-ready end-to-end pattern |

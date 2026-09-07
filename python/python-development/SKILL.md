@@ -3,6 +3,7 @@ name: python-development
 version: 1.0.0
 technology: python
 author: Ankur Bhatnagar
+last_updated: 2026-09-07
 description: >
   General Python scripting and utilities skill (Python 3.11+).
   Covers PEP 8 conventions, type hints, dataclasses, error handling,
@@ -32,9 +33,16 @@ Use this skill when working on:
 - Library and module code without a web framework
 - Async scripts using `asyncio`
 - Configuration and automation scripts
+- Example trigger phrases: `"write a CLI tool"`, `"add type hints"`, `"handle this file async"`,
+  `"write an ETL script"`, `"add a retry decorator"`
 
-Do **not** apply to FastAPI, Django, Flask, or other web-framework projects — those require
-a framework-specific skill extension.
+**Do NOT use when:**
+
+- The project uses FastAPI, Django, Flask, or another web framework — a framework-specific
+  web skill takes precedence when one is present; if none exists in this repo yet, apply
+  this skill's general conventions only where they don't conflict with the framework's own.
+- The user is asking about frontend, infrastructure, or non-Python concerns
+- A more specific skill (e.g. a data-science or ML-focused Python skill) is already active
 
 ---
 
@@ -104,8 +112,10 @@ ignore_missing_imports = true
 - Two blank lines between top-level definitions; one blank line between methods
 - Imports in order: standard library, third-party, local — separated by blank lines
 - Never use wildcard imports (`from module import *`)
-- Prefer absolute imports over relative imports in scripts
-- Never use `!important` equivalents — use clear specificity in logic, not hacks
+- Prefer absolute imports over relative imports in scripts — relative imports break when a
+  script is run directly rather than as part of a package, while absolute imports stay
+  unambiguous when files are moved or refactored
+- One statement per line — never separate statements with semicolons
 
 ### Type hints (mandatory for all public functions)
 
@@ -194,6 +204,8 @@ class OrderItem:
 ### TypedDict (for typed dict structures — JSON API shapes)
 
 ```python
+from __future__ import annotations
+
 from typing import TypedDict
 
 
@@ -214,6 +226,8 @@ class OrderItemDict(TypedDict):
 ### Pydantic model (when validation is needed)
 
 ```python
+from __future__ import annotations
+
 from datetime import datetime
 from pydantic import BaseModel, Field, field_validator
 
@@ -446,6 +460,8 @@ config = Config.from_env()
 ```python
 # logging_config.py — configure once at startup
 
+from __future__ import annotations
+
 import logging
 import sys
 
@@ -585,7 +601,8 @@ if __name__ == "__main__":
 - Run `ruff check .` and `ruff format .` before committing
 - Run `mypy src/` — fix all type errors; never use `# type: ignore` without a comment explaining why
 - Never use mutable default arguments: `def f(items=[])` — use `None` and assign inside
-- Always use `if __name__ == "__main__":` guard in scripts
+- Always use `if __name__ == "__main__":` guard in scripts — it lets the module be safely
+  imported elsewhere (e.g. in tests) without executing its top-level script logic
 - Use `pathlib.Path` everywhere — never `os.path.join` or string concatenation for paths
 - Use `with` statements for all file, network, and database resources
 - Avoid bare `except:` — always name the exception type
@@ -593,6 +610,21 @@ if __name__ == "__main__":
 ---
 
 ## 14. Customizing This Skill
+
+### Reference Files
+
+Claude reads this SKILL.md first; it opens a reference file only when it needs deeper
+detail on that specific topic.
+
+| Topic | File | When to read |
+|---|---|---|
+| Protocol, TypeVar, Generic, TypedDict details, Pydantic v2 patterns, type guards | `references/type-system.md` | When the user asks about advanced typing, generics, structural typing, or runtime validation beyond the basics shown in §4 |
+| asyncio, threading, multiprocessing, concurrent.futures | `references/concurrency.md` | When the user asks to write async code, parallelize work, run blocking calls off the event loop, or build a producer/consumer pipeline |
+| pathlib, JSON, CSV, binary files, streaming, temp files, file watching | `references/file-operations.md` | When the user asks to read, write, stream, or watch files, or needs atomic-write / large-file patterns |
+| Decorators, context managers, iterators/generators, pattern matching, descriptors, ABCs, registries | `references/patterns.md` | When the user asks for a decorator, custom context manager, generator, `match` statement, or a design-pattern implementation |
+| Full worked examples | `references/examples.md` | When producing a complete feature, script, or needing a production-ready, end-to-end pattern |
+
+### Project Overrides
 
 ```markdown
 ## Project Overrides — [Project Name]

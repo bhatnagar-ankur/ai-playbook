@@ -116,7 +116,7 @@ Every skill follows the same two-layer structure:
 | Angular | `type-system`, `http-layer`, `state-management`, `testing`, `examples` |
 | React | `type-system`, `http-layer`, `state-management`, `testing`, `examples` |
 | Next.js | `rendering`, `server-actions`, `auth`, `testing`, `examples` |
-| Native Web | `html`, `css`, `javascript`, `web-components`, `examples` |
+| Native Web | `html`, `css`, `javascript`, `web-components`, `testing`, `examples` |
 | .NET Web API | `controllers`, `data-layer`, `auth`, `testing`, `examples` |
 | Python | `type-system`, `concurrency`, `file-operations`, `patterns`, `examples` |
 | Design System | `tokens`, `components`, `accessibility`, `figma`, `examples` |

@@ -37,6 +37,12 @@ For the overview and middleware registration see the **Auth** section in `SKILL.
 }
 ```
 
+**Never commit the actual key value** — the snippet above is a placeholder, not a value to
+type in. Use `dotnet user-secrets init` + `dotnet user-secrets set "Jwt:Key" "<value>"` for local
+development (keeps the secret out of any file in the repo, including `appsettings.Development.json`),
+and an environment variable or a secrets manager (Azure Key Vault, AWS Secrets Manager) in
+production. Configuration binding picks up either transparently — no code change required.
+
 ```csharp
 // Application/Models/JwtOptions.cs
 
@@ -88,6 +94,12 @@ public static IServiceCollection AddJwtAuthentication(
                 IssuerSigningKey         = new SymmetricSecurityKey(
                     Encoding.UTF8.GetBytes(jwtOptions.Key)),
                 ClockSkew                = TimeSpan.FromSeconds(30),
+                // Must match the claim type string used when issuing the token (see
+                // TokenService.GenerateAccessToken below: new("role", user.Role)). Without
+                // this, ASP.NET Core defaults RoleClaimType to ClaimTypes.Role, so
+                // policy.RequireRole(...) and User.IsInRole(...) would silently never match
+                // the "role" claim actually present on the principal.
+                RoleClaimType            = "role",
             };
 
             // Support token in query string for SignalR / WebSocket hubs
@@ -416,23 +428,51 @@ public sealed class OrderAuthorizationHandler
     }
 }
 
-// Controller usage
-[HttpDelete("{id:int}")]
-public async Task<IActionResult> Delete(
-    int id,
-    [FromServices] IAuthorizationService authService,
-    CancellationToken ct)
+// Application/Services/OrderService.cs — authorization lives in the service, not the
+// controller (SKILL.md: "Never put business logic in controllers — delegate to a service").
+// This mirrors the ownership check pattern in references/examples.md's OrderService.
+public sealed class OrderService : IOrderService
 {
-    var order = await _service.GetEntityByIdAsync(id, ct);
-    if (order is null) return NotFound();
+    private readonly IUnitOfWork _uow;
+    private readonly IAuthorizationService _authorizationService;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
-    var authResult = await authService.AuthorizeAsync(
-        User, order, OrderOperations.Delete);
+    public OrderService(
+        IUnitOfWork uow,
+        IAuthorizationService authorizationService,
+        IHttpContextAccessor httpContextAccessor)
+    {
+        _uow                  = uow;
+        _authorizationService = authorizationService;
+        _httpContextAccessor  = httpContextAccessor;
+    }
 
-    if (!authResult.Succeeded) return Forbid();
+    public async Task<bool> DeleteAsync(int id, CancellationToken ct)
+    {
+        var order = await _uow.Orders.GetByIdAsync(id, ct);
+        if (order is null) return false;
 
-    await _service.DeleteAsync(id, ct);
-    return NoContent();
+        var user = _httpContextAccessor.HttpContext!.User;
+        var authResult = await _authorizationService.AuthorizeAsync(
+            user, order, OrderOperations.Delete);
+
+        if (!authResult.Succeeded)
+            throw new UnauthorizedException("You do not own this order.");
+
+        _uow.Orders.Remove(order);
+        await _uow.SaveChangesAsync(ct);
+        return true;
+    }
+}
+
+// Controller usage — only calls the service and translates the result to an HTTP
+// response; the domain exception is mapped to 401/403 by the exception-handling
+// middleware (see references/controllers.md), not by branching here.
+[HttpDelete("{id:int}")]
+public async Task<IActionResult> Delete(int id, CancellationToken ct)
+{
+    var success = await _service.DeleteAsync(id, ct);
+    return success ? NoContent() : NotFound();
 }
 ```
 

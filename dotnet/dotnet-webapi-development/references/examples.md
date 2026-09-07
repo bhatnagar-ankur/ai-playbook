@@ -214,16 +214,19 @@ public static class OrderMapper
 
 public sealed class OrderService : IOrderService
 {
-    private readonly IOrderRepository _repo;
-    private readonly ICurrentUser     _user;
+    // IOrderRepository/IRepository<T> only expose data access (Add/Get/Update/Remove) —
+    // persistence is triggered through IUnitOfWork.SaveChangesAsync, not the repository
+    // itself. See references/data-layer.md for the Unit-of-Work definition.
+    private readonly IUnitOfWork _uow;
+    private readonly ICurrentUser _user;
     private readonly ILogger<OrderService> _logger;
 
     public OrderService(
-        IOrderRepository repo,
+        IUnitOfWork uow,
         ICurrentUser user,
         ILogger<OrderService> logger)
     {
-        _repo   = repo;
+        _uow    = uow;
         _user   = user;
         _logger = logger;
     }
@@ -231,14 +234,14 @@ public sealed class OrderService : IOrderService
     public async Task<IReadOnlyList<OrderResponse>> GetAllAsync(
         CancellationToken ct = default)
     {
-        var orders = await _repo.GetByCustomerIdAsync(_user.Id, ct);
+        var orders = await _uow.Orders.GetByCustomerIdAsync(_user.Id, ct);
         return orders.Select(OrderMapper.ToResponse).ToList();
     }
 
     public async Task<OrderResponse?> GetByIdAsync(
         int id, CancellationToken ct = default)
     {
-        var order = await _repo.GetByIdAsync(id, ct);
+        var order = await _uow.Orders.GetByIdAsync(id, ct);
         if (order is null) return null;
         if (order.CustomerId != _user.Id && _user.Role != "admin")
             throw new UnauthorizedException("You do not own this order.");
@@ -252,8 +255,8 @@ public sealed class OrderService : IOrderService
         foreach (var item in request.Items)
             order.AddItem(item.Sku, item.Quantity, 0m);   // Price fetched from inventory
 
-        await _repo.AddAsync(order, ct);
-        await _repo.SaveChangesAsync(ct);
+        await _uow.Orders.AddAsync(order, ct);
+        await _uow.SaveChangesAsync(ct);
 
         _logger.LogInformation("Order {OrderId} created for {CustomerId}",
             order.Id, order.CustomerId);
@@ -266,24 +269,24 @@ public sealed class OrderService : IOrderService
         UpdateOrderStatusRequest request,
         CancellationToken ct = default)
     {
-        var order = await _repo.GetByIdAsync(id, ct);
+        var order = await _uow.Orders.GetByIdAsync(id, ct);
         if (order is null) return false;
 
         if (!Enum.TryParse<OrderStatus>(request.Status, out var newStatus))
             throw new ValidationException("Invalid order status.");
 
         order.UpdateStatus(newStatus);
-        _repo.Update(order);
-        await _repo.SaveChangesAsync(ct);
+        _uow.Orders.Update(order);
+        await _uow.SaveChangesAsync(ct);
         return true;
     }
 
     public async Task<bool> DeleteAsync(int id, CancellationToken ct = default)
     {
-        var order = await _repo.GetByIdAsync(id, ct);
+        var order = await _uow.Orders.GetByIdAsync(id, ct);
         if (order is null) return false;
-        _repo.Remove(order);
-        await _repo.SaveChangesAsync(ct);
+        _uow.Orders.Remove(order);
+        await _uow.SaveChangesAsync(ct);
         return true;
     }
 }

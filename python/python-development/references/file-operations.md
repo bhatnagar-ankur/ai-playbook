@@ -24,6 +24,8 @@ pathlib, CSV, JSON, text, binary, streaming, and temporary file patterns for Pyt
 ## pathlib Fundamentals
 
 ```python
+from __future__ import annotations
+
 from pathlib import Path
 
 
@@ -75,6 +77,8 @@ list(data_dir.rglob("*.log"))         # Recursive glob shorthand
 ## Reading and Writing Text Files
 
 ```python
+from __future__ import annotations
+
 from pathlib import Path
 
 
@@ -112,6 +116,8 @@ def safe_read(path: Path, default: str = "") -> str:
 ## JSON
 
 ```python
+from __future__ import annotations
+
 import json
 from pathlib import Path
 from typing import Any
@@ -177,6 +183,8 @@ json.dumps(data, cls=AppJsonEncoder, indent=2)
 ## CSV
 
 ```python
+from __future__ import annotations
+
 import csv
 from dataclasses import dataclass
 from pathlib import Path
@@ -236,6 +244,8 @@ def process_large_csv(path: Path) -> int:
 ## Binary Files
 
 ```python
+from __future__ import annotations
+
 import hashlib
 from pathlib import Path
 
@@ -315,6 +325,8 @@ def count_lines(path: Path) -> int:
 ## Temporary Files and Directories
 
 ```python
+from __future__ import annotations
+
 import tempfile
 from pathlib import Path
 
@@ -364,6 +376,8 @@ def write_report(data: object) -> Path:
 ## Directory Operations
 
 ```python
+from __future__ import annotations
+
 from pathlib import Path
 import shutil
 
@@ -418,6 +432,8 @@ def disk_usage(path: Path) -> int:
 ```python
 # Use watchdog for production file watching
 # pip install watchdog
+
+from __future__ import annotations
 
 from pathlib import Path
 from watchdog.events import FileSystemEvent, FileSystemEventHandler

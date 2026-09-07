@@ -2,6 +2,7 @@
 name: react-development
 version: 1.0.0
 author: Ankur Bhatnagar
+last_updated: 2026-09-07
 description: >
   Enforces React 19+ best practices for components, hooks, type system,
   state management, HTTP layer, forms, routing, accessibility, and testing.
@@ -44,6 +45,10 @@ Apply when:
 - Writing unit or integration tests for React code
 - Reviewing existing code for correctness, accessibility, or performance
 
+**Do NOT use when:**
+- The project is a Next.js App Router app — defer to the `nextjs-development` skill instead,
+  which already inherits this skill's type system, HTTP layer, and state management patterns
+
 ---
 
 ## 2. Project Structure
@@ -67,6 +72,7 @@ src/
 │   └── utils/                  # Pure utility functions
 ├── models/
 │   ├── interfaces/             # i-<entity>.interface.ts
+│   ├── classes/                # <entity>.model.ts — domain models with computed/behaviour methods
 │   ├── enums/                  # <entity>-<concept>.enum.ts
 │   ├── constants/              # <domain>.constants.ts
 │   └── mappers/                # <entity>.mapper.ts
@@ -82,6 +88,7 @@ src/
 - Feature code never imports from another feature — shared code lives in `shared/` or `models/`
 - One component per file; file name matches the component name in `kebab-case`
 - No barrel `index.ts` files that re-export everything — import directly from the source file
+  (barrel files hurt tree-shaking and can cause circular-import issues)
 
 ---
 
@@ -128,6 +135,7 @@ export function OrderCard({ order, onSelectOrder }: OrderCardProps): React.React
 - Always provide explicit return type (`React.ReactElement`)
 - Use named exports — never default exports (makes refactoring safer)
 - Wrap lists in semantic HTML (`<ul>/<li>`, `<section>`, `<article>`) not bare `<div>`
+  (screen readers announce list semantics and item counts to assistive-technology users)
 
 ### 3b. Custom hooks
 
@@ -164,7 +172,7 @@ export function useOrders() {
 | `use(promise)` | Use inside components/hooks to read async values with Suspense |
 | `use(context)` | Prefer over `useContext()` in React 19 projects — same semantics, more flexible |
 | `ref` as prop | No more `forwardRef` — pass `ref` directly to function components |
-| `useActionState` | Use for form submission state (replaces `useState` + loading flag pattern) |
+| `useActionState` | Use only for a form wired directly to a Server Action / async transition with **no form library** involved. For standard client-side forms with field-level validation UX, use React Hook Form + Zod instead (see Section 7) — `useActionState` is not a replacement for that pattern |
 | `useOptimistic` | Use for optimistic UI updates before server confirmation |
 | `<form action>` | Use Server Actions as the `action` prop (in Next.js) or `useActionState` action |
 
@@ -249,6 +257,8 @@ Full patterns with examples in `references/state-management.md`.
 - Never reach for RTK when TanStack Query alone covers the need (server data is Query's job)
 - Never put server data (API responses) into RTK or Zustand — let TanStack Query own it
 - Never expose a Zustand store's setter directly from a component — wrap in a hook
+  (encapsulation: lets you change the store's internal shape without touching every consumer,
+  and gives you one place to add validation or logging later)
 - Context is for values that change rarely; do not use it as a generic state bus
 
 ### 5a. TanStack Query — query key discipline
@@ -301,6 +311,12 @@ core/http/
 ## 7. Forms — React Hook Form + Zod
 
 Full examples in `references/examples.md`.
+
+**Decision rule:** Use React Hook Form + Zod (below) for standard client-side forms that need
+field-level validation UX (inline errors, `aria-invalid`, disabling submit while pending).
+Reserve `useActionState` (Section 3c) for a form wired directly to a Server Action or async
+transition with no form library in the mix — the two patterns are not interchangeable and
+should not be mixed within the same form.
 
 ```typescript
 // models/validators/schemas/login.schema.ts
@@ -415,6 +431,9 @@ export function AppRouter(): React.ReactElement {
 **Routing rules:**
 - All route-level components are lazy-loaded with `React.lazy` + `Suspense`
 - Auth protection via loader functions — never wrapping JSX in a ternary
+  (a loader redirects before the protected component ever renders, avoiding a flash of
+  protected content, and keeps the check colocated with routing instead of scattered through
+  render logic)
 - Use `createBrowserRouter` (v6 data router) — not `<BrowserRouter>` wrapping the tree
 
 ---
@@ -483,7 +502,9 @@ This project uses multiple styling approaches — choose consistently within a f
 - Never use inline `style={{}}` for anything other than truly dynamic values (e.g. chart widths)
 - Never use `!important` — if you need it to win specificity, fix the selector or restructure the CSS Module scope instead
 - UI library themes must be configured via the library's theme provider, not overridden with `!important`
-- Do not mix UI libraries in the same feature (e.g. MUI + PrimeReact on the same page)
+- Do not mix UI libraries in the same feature (e.g. MUI + PrimeReact on the same page) —
+  each library adds its own bundle weight, and mixing them produces inconsistent theming
+  and accessibility behaviour across the page
 
 ---
 
@@ -548,21 +569,36 @@ it('calls authService')
 
 ---
 
-## 14. Future APIs
+## 14. React 19 API Reference
+
+For `use()`, `ref` as prop, `useActionState`, and `useOptimistic`, see the table in Section 3c —
+they are stable, mandatory-baseline APIs for this skill, not upcoming features.
+
+The two items below are the only React 19 capabilities not already covered in Section 3c:
 
 | Feature | Available from | Notes |
 |---|---|---|
-| `use(promise)` | React 19 | Stable — use now |
-| `use(context)` | React 19 | Stable — prefer over `useContext` |
-| `ref` as prop | React 19 | Stable — drop `forwardRef` |
-| `useActionState` | React 19 | Stable — replaces manual form-submitting state |
-| `useOptimistic` | React 19 | Stable — use for optimistic mutations |
 | React Compiler | React 19+ (opt-in) | Auto-memoises — run `react-compiler-healthcheck` first |
 | Server Components | React 19 (via framework) | Use via Next.js App Router; not available in pure Vite/CRA projects |
 
 ---
 
 ## 15. Customizing This Skill
+
+### Reference file lookup
+
+Claude reads this SKILL.md first; open a reference file only when the task needs deeper
+detail on that specific topic.
+
+| Topic | File | When to read |
+|---|---|---|
+| Type system (interfaces, model classes, enums, constants, mappers) | `references/type-system.md` | When creating or reviewing API-response shapes, domain models, or mappers |
+| HTTP layer | `references/http-layer.md` | When setting up or modifying the axios client, interceptors, or per-request options |
+| State management | `references/state-management.md` | When choosing or implementing a state tier (Zustand, Jotai, RTK, TanStack Query, Context) |
+| Testing | `references/testing.md` | When writing or reviewing unit/integration tests, mocks, or coverage for React code |
+| Full examples | `references/examples.md` | When producing a complete feature or needing a production-ready end-to-end pattern |
+
+### Project overrides
 
 Record project-level overrides here when the team deviates from a default.
 

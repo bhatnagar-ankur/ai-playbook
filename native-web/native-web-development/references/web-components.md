@@ -8,15 +8,16 @@ For the overview and quick rules see the **Web Components** section in `SKILL.md
 ## Table of Contents
 1. [Custom Elements Lifecycle](#custom-elements-lifecycle)
 2. [Shadow DOM](#shadow-dom)
-3. [Observed Attributes](#observed-attributes)
-4. [HTML Templates with Slots](#html-templates-with-slots)
-5. [Named Slots](#named-slots)
-6. [Custom Events from Components](#custom-events-from-components)
-7. [Cleanup in disconnectedCallback](#cleanup-in-disconnectedcallback)
-8. [Registering Components](#registering-components)
-9. [Complete Example — notification-toast](#complete-example--notification-toast)
-10. [Complete Example — data-table](#complete-example--data-table)
-11. [Patterns and Anti-patterns](#patterns-and-anti-patterns)
+3. [Accessibility: Focus and Forms in Shadow DOM](#accessibility-focus-and-forms-in-shadow-dom)
+4. [Observed Attributes](#observed-attributes)
+5. [HTML Templates with Slots](#html-templates-with-slots)
+6. [Named Slots](#named-slots)
+7. [Custom Events from Components](#custom-events-from-components)
+8. [Cleanup in disconnectedCallback](#cleanup-in-disconnectedcallback)
+9. [Registering Components](#registering-components)
+10. [Complete Example — notification-toast](#complete-example--notification-toast)
+11. [Complete Example — data-table](#complete-example--data-table)
+12. [Patterns and Anti-patterns](#patterns-and-anti-patterns)
 
 ---
 
@@ -183,6 +184,118 @@ customElements.define('status-badge', StatusBadge);
 
 <status-badge status="shipped">Shipped</status-badge>
 ```
+
+---
+
+## Accessibility: Focus and Forms in Shadow DOM
+
+### delegatesFocus
+
+By default, `Tab` can land on the host element itself but does not automatically forward focus
+into a specific interactive element inside its shadow root. Pass `delegatesFocus: true` when the
+component's primary interactive surface should receive focus as soon as the host (or a `<label>`
+pointing at it) is focused or clicked — e.g. a custom `<ui-input>` or `<ui-checkbox>` wrapping a
+native `<input>`.
+
+```javascript
+class UiInput extends HTMLElement {
+  #shadow;
+
+  constructor() {
+    super();
+    this.#shadow = this.attachShadow({ mode: 'open', delegatesFocus: true });
+  }
+}
+```
+
+**Effects of `delegatesFocus: true`:**
+- Clicking anywhere in the host's shadow tree focuses the first focusable element inside it
+- `:focus`/`:focus-visible` on the host apply whenever any element within the shadow tree has focus — useful for a `:host(:focus-visible)` ring style
+- A `<label>` in the light DOM pointing at the host via `for="host-id"` forwards focus into the shadow tree, the same way it does for native form controls
+
+Skip `delegatesFocus` on components with no meaningful interactive element inside — it adds
+nothing and can move focus in a way the user doesn't expect.
+
+### ElementInternals and Form-Associated Custom Elements
+
+A custom element can participate in native `<form>` submission, validation, and `:invalid`/`:valid`
+styling by declaring `static formAssociated = true` and calling `attachInternals()`. This lets a
+custom input work with `FormData`, `form.reportValidity()`, and `required` the same way a native
+`<input>` does, without exposing its internal markup.
+
+```javascript
+class RatingInput extends HTMLElement {
+  static formAssociated = true;
+  static observedAttributes = ['value', 'required'];
+
+  #internals;
+  #shadow;
+
+  constructor() {
+    super();
+    this.#shadow = this.attachShadow({ mode: 'open', delegatesFocus: true });
+    this.#internals = this.attachInternals();
+  }
+
+  connectedCallback() {
+    this.#render();
+    this.#syncValidity();
+  }
+
+  /** @returns {string} */
+  get value() { return this.getAttribute('value') ?? ''; }
+
+  /** @param {string} v */
+  set value(v) {
+    this.setAttribute('value', v);
+    this.#internals.setFormValue(v);   // Value submitted with the enclosing <form>
+    this.#syncValidity();
+  }
+
+  #syncValidity() {
+    const isRequired = this.hasAttribute('required');
+    if (isRequired && !this.value) {
+      this.#internals.setValidity({ valueMissing: true }, 'Please choose a rating.');
+    } else {
+      this.#internals.setValidity({});   // Clears the invalid state
+    }
+  }
+
+  #render() {
+    this.#shadow.innerHTML = `
+      <style>:host { display: inline-flex; }</style>
+      <div role="radiogroup" aria-label="Rating">
+        <!-- star buttons; each click calls this.value = '<n>' -->
+      </div>
+    `;
+  }
+}
+
+customElements.define('rating-input', RatingInput);
+```
+
+```html
+<!-- Works with native form semantics — participates in FormData and validation -->
+<form>
+  <rating-input name="rating" required></rating-input>
+  <button type="submit">Submit</button>
+</form>
+```
+
+**Rules:**
+- Declare `static formAssociated = true` and call `this.attachInternals()` in the constructor for any custom element meant to submit a value with a `<form>`
+- Call `this.#internals.setFormValue(value)` whenever the value changes — this is what `FormData` and native form submission read
+- Call `this.#internals.setValidity({...}, message)` to integrate with `:invalid`, `reportValidity()`, and native validation UI; pass `{}` to clear the invalid state
+- `ElementInternals` also exposes ARIA-reflection properties (`role`, `ariaLabel`, etc.) — prefer setting these over manually applying `role`/`aria-*` to the host when the element is form-associated
+
+### Keyboard Handling Inside Shadow DOM
+
+Keyboard activation for a custom interactive element rendered inside a shadow root follows the
+same pattern as any other non-native interactive element — see `makeKeyboardActivatable` in
+`references/html.md` (**Keyboard event handling**) rather than duplicating that Enter/Space
+handling logic here. Attach the `keydown` listener inside the shadow root (e.g.
+`this.#shadow.addEventListener(...)`) with the same `AbortController`-signal cleanup shown in
+[Cleanup in disconnectedCallback](#cleanup-in-disconnectedcallback).
 
 ---
 

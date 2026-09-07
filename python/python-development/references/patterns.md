@@ -103,6 +103,8 @@ def singleton(cls: type[T]) -> type[T]:
 ## Context Managers
 
 ```python
+from __future__ import annotations
+
 from contextlib import contextmanager, suppress
 from pathlib import Path
 import tempfile
@@ -208,7 +210,7 @@ class OrderBatch:
 
 # itertools patterns
 from itertools import (
-    batched,        # Python 3.12 — split into chunks
+    batched,        # Python 3.12+ only — split into chunks; see fallbacks below for 3.11
     chain,          # Flatten multiple iterables
     groupby,        # Group consecutive items
     takewhile,      # Take while predicate is True
@@ -217,8 +219,23 @@ from itertools import (
 
 import itertools
 
-# batched (Python 3.12+)
+# batched (Python 3.12+) — optional pattern; this skill's baseline is 3.11, so guard
+# usage or use one of the fallbacks below if the target runtime may still be 3.11.
 for chunk in itertools.batched(orders, 50):
+    process_batch(list(chunk))
+
+# Python 3.11-compatible fallback #1 — manual chunking loop, no extra dependency
+def chunked(items: list[object], size: int) -> Iterator[list[object]]:
+    for i in range(0, len(items), size):
+        yield items[i : i + size]
+
+for chunk in chunked(orders, 50):
+    process_batch(chunk)
+
+# Python 3.11-compatible fallback #2 — more_itertools.batched (pip install more-itertools)
+from more_itertools import batched as batched_compat
+
+for chunk in batched_compat(orders, 50):
     process_batch(list(chunk))
 
 # chain — combine iterables without building a list
@@ -398,6 +415,8 @@ class Order:
 ## Abstract Base Classes
 
 ```python
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from pathlib import Path
 

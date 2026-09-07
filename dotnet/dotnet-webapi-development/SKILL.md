@@ -3,11 +3,14 @@ name: dotnet-webapi-development
 version: 1.0.0
 technology: dotnet
 author: Ankur Bhatnagar
+last_updated: 2026-09-07
 description: >
   ASP.NET Core Web API development skill for .NET 8 LTS.
   Covers controllers, Minimal APIs, dependency injection, EF Core,
   validation, JWT authentication, HTTP client patterns, options,
   logging, performance, and xUnit testing.
+  Example trigger phrases: "create a controller", "add a repository",
+  "scaffold an endpoint", "add JWT authentication", "write a unit test for a service".
 references:
   - references/controllers.md
   - references/data-layer.md
@@ -152,10 +155,18 @@ public sealed class OrdersController : ControllerBase
 
 **Controller rules:**
 - Always `[ApiController]` + `[Route]` — never route via `[HttpGet("path")]` alone
-- Return `IActionResult` (not `ActionResult<T>`) — use `[ProducesResponseType<T>]` for Swagger
+- Return `IActionResult` (not `ActionResult<T>`) — every action in this skill's controllers uses a consistent return type regardless of how many possible outcomes it has (Ok/NotFound/BadRequest/…), so callers and filters don't need to special-case `ActionResult<T>`'s dual nature; document the success payload separately with `[ProducesResponseType<T>]` for Swagger. (Note: current Microsoft guidance favors `ActionResult<T>` for its compile-time payload typing — teams that value that over return-type uniformity may reasonably override this rule via §15.)
 - Never put business logic in controllers — delegate to a service
 - Always accept `CancellationToken ct` and pass it to all async calls
 - Use `sealed` on controllers — they are not designed for inheritance
+
+### CORS
+
+Required before any browser-based frontend can call this API cross-origin.
+
+- Define explicit allowed origins via `AddCors` — never combine `AllowAnyOrigin()` with `AllowCredentials()` (the combination is rejected by browsers and, if it somehow worked, would let any site make credentialed requests)
+- Scope policies per environment — permissive/localhost origins in dev, an explicit allow-list of real production domains in prod
+- Apply the policy with `app.UseCors("PolicyName")` before `app.UseAuthorization()` in the middleware pipeline
 
 ### Minimal API (for lightweight or versioned endpoints)
 
@@ -334,6 +345,12 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
     }
 }
 ```
+
+**Why Repository/Unit-of-Work instead of `DbContext`/`DbSet` directly in services:** it keeps
+services testable — a fake `IRepository` can be swapped in for unit tests without spinning up a
+real database — centralizes query logic in one place instead of scattering LINQ across services,
+and keeps EF Core-specific concerns (change tracking, `DbSet` mechanics) out of the application
+layer.
 
 For the repository pattern, unit of work, migrations, and query patterns see `references/data-layer.md`.
 
@@ -663,7 +680,9 @@ public sealed class OrderServiceTests
 
 ## 14. Code Quality
 
-- Target `<Nullable>enable</Nullable>` and `<ImplicitUsings>enable</ImplicitUsings>` in every `.csproj`
+- Nullable reference types are **mandatory** — target `<Nullable>enable</Nullable>` and `<ImplicitUsings>enable</ImplicitUsings>` in every `.csproj`
+- **Formatter:** `dotnet format` — run locally before committing; enforce in CI with `dotnet format --verify-no-changes` so unformatted code fails the build
+- **Analyzers:** rely on the built-in Roslyn analyzers (on by default in .NET 8 SDK-style projects) plus a repo-root `.editorconfig` for naming/style rules; treat analyzer warnings as errors in CI (`dotnet build /warnaserror`)
 - Use `sealed` on classes not designed for inheritance (most classes)
 - Use `record` for immutable DTOs and value objects; `record struct` for small value types
 - Use `init` properties on DTOs — never public setters
@@ -676,6 +695,20 @@ public sealed class OrderServiceTests
 ---
 
 ## 15. Customizing This Skill
+
+### Reference File Lookup
+
+Claude reads this file first; open a reference file only when the task needs deeper detail:
+
+| Topic | File | When to read |
+|---|---|---|
+| Controllers, Minimal APIs, filters, versioning, Swagger/OpenAPI | `references/controllers.md` | When scaffolding endpoints, adding action filters, API versioning, or Swagger config |
+| Repository pattern, Unit of Work, migrations, query patterns | `references/data-layer.md` | When adding a repository, wiring EF Core migrations, or writing paginated/complex queries |
+| JWT auth, refresh tokens, policies, resource-based authorization | `references/auth.md` | When issuing tokens, adding a policy, or writing custom/resource-based authorization handlers |
+| xUnit, Moq, WebApplicationFactory, test data builders | `references/testing.md` | When writing unit or integration tests for services, controllers, or repositories |
+| Full examples | `references/examples.md` | When producing a complete feature or needing a production-ready, end-to-end pattern |
+
+### Project Overrides
 
 ```markdown
 ## Project Overrides — [Project Name]
